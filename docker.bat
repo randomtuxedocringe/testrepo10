@@ -20,15 +20,10 @@ set "DOCKER_URL=https://desktop.docker.com/win/stable/Docker%20Desktop%20Install
 set "INSTALLER_NAME=DockerDesktopInstaller.exe"
 set "DOWNLOAD_PATH=%TEMP%\%INSTALLER_NAME%"
 
-:: Function to check if a command exists
+:: Improved function to check if a command exists
 :commandExists
 set "command=%~1"
 set "command=!command:"=!"
-for %%C in (!command!) do (
-    set "command=%%C"
-    goto :checkCommand
-)
-:checkCommand
 where "!command!" >nul 2>&1
 if !errorlevel! == 0 (
     exit /b 0
@@ -73,7 +68,7 @@ wsl --set-default-version 2 >nul 2>&1
 if %errorlevel% neq 0 (
     echo WSL2 requires an update. Please ensure you have the latest WSL2 kernel.
     echo You may need to install the WSL2 Linux kernel update package from:
-    echo https://docs.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package
+    echo https://aka.ms/wsl2kernel
     echo.
     choice /c YN /M "Do you want to continue with installation anyway? (Y/N)"
     if !errorlevel! equ 2 (
@@ -85,7 +80,7 @@ if %errorlevel% neq 0 (
 
 :: Check if Docker is already installed
 echo Checking if Docker Desktop is already installed...
-call :commandExists "docker"
+call :commandExists docker
 if !errorlevel! equ 0 (
     echo Docker appears to be already installed.
     docker --version
@@ -101,8 +96,8 @@ if !errorlevel! equ 0 (
 :: Download Docker Desktop installer
 echo.
 echo Downloading Docker Desktop installer...
-powershell -Command "& {Invoke-WebRequest -Uri '%DOCKER_URL%' -OutFile '%DOWNLOAD_PATH%'}"
-if !errorlevel! neq 0 (
+powershell -Command "Invoke-WebRequest -Uri '%DOCKER_URL%' -OutFile '%DOWNLOAD_PATH%'" >nul 2>&1
+if %errorlevel% neq 0 (
     echo ERROR: Failed to download Docker Desktop installer.
     echo Please check your internet connection and try again.
     pause
@@ -115,9 +110,9 @@ echo Download completed successfully.
 echo.
 echo Installing Docker Desktop...
 echo This may take several minutes. Please wait...
-start /wait "" "%DOWNLOAD_PATH%" install --quiet --accept-license
+"%DOWNLOAD_PATH%" install --quiet --accept-license
 
-if !errorlevel! equ 0 (
+if %errorlevel% equ 0 (
     echo.
     echo ===============================================
     echo Docker Desktop installed successfully!
@@ -131,7 +126,7 @@ if !errorlevel! equ 0 (
     
     echo.
     choice /c YR /M "Do you want to restart now? (Y=Restart now, R=Restart later)"
-    if !errorlevel! equ 1 (
+    if %errorlevel% equ 1 (
         echo Restarting computer...
         shutdown /r /t 30 /c "Docker Desktop installation completed. Restarting to apply changes."
         echo Computer will restart in 30 seconds. Save your work.
@@ -144,6 +139,7 @@ if !errorlevel! equ 0 (
     echo ERROR: Docker Desktop installation failed!
     echo ===============================================
     echo.
+    echo Exit code: %errorlevel%
     echo Please check the following:
     echo 1. Ensure virtualization is enabled in BIOS
     echo 2. Check if Hyper-V is enabled
